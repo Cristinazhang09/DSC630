@@ -1,0 +1,138 @@
+---
+title: "Predictive Analytics Milestone 4"
+author: "Jingru Zhang"
+date: "11/1/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Import the data
+```{r, warning=FALSE, message=FALSE}
+library(dplyr)
+
+data <- read.csv("housing_prices.csv")
+head(data)
+
+glimpse(data)
+summary(data)
+```
+
+Split data
+```{r, warning=FALSE, message=FALSE}
+library(caTools)
+
+set.seed(123)
+split <- sample.split(data, SplitRatio = 0.7)
+train <- subset(data, split == TRUE)
+test <-  subset(data, split == FALSE)
+```
+
+## Multiple linear regression 
+```{r, warning=FALSE, message=FALSE}
+lm1 <- lm(prices ~ ., data=train)
+summary(lm1)
+```
+
+The target variable is skewed, thus I apply log to it.
+```{r, warning=FALSE, message=FALSE}
+lm2 <- lm(log(prices) ~ ., data=train)
+summary(lm2)
+```
+
+I choose those significant independent variables only.
+```{r, warning=FALSE, message=FALSE}
+lm3 <- lm(log(prices) ~ .-num_garage, data=train)
+summary(lm3)
+```
+
+Check assumptions about the residuals
+```{r, message=FALSE, warning=FALSE}
+ par(mfrow=c(2,2))
+ plot(lm3)
+```
+
+The first graph is a plot of fitted values against residuals.The dots nearly evenly dispersed around zero.Thus, the assumptions of linearity, randomness and homnoscedasticity have been met.The second Q-Q plot shows that the dots are distant from the line at the extremes, which indicates a deviaion from normality. And all of the cases are within the dashed Cook's distance line, no clear outliers.
+
+Predict the housing prices on the testing data.
+```{r, warning=FALSE, message=FALSE}
+pre2 <- predict(lm2, test, type = "response")
+pre3 <- predict(lm3, test, type = "response")
+```
+
+Using model 2 to calculate mean squared error.
+```{r, message=FALSE, warning=FALSE}
+library(Metrics)
+
+mse(log(test$prices), pre2)
+```
+
+Using model 3 to calculate mean squared error.
+```{r, message=FALSE, warning=FALSE}
+mse(log(test$prices), pre3)
+```
+
+## Random forest
+```{r, message=FALSE, warning=FALSE}
+library(randomForest) 
+
+set.seed(1234)
+rf1<- randomForest(formula = prices ~., data = train)
+print(rf1)
+```
+
+The target variable is skewed, thus I apply log to it.
+```{r, message=FALSE, warning=FALSE}
+set.seed(1234)
+rf2<- randomForest(formula = log(prices) ~. ,data = train )
+print(rf2)
+```
+
+Predict the housing prices on the testing data.
+```{r, message=FALSE, warning=FALSE}
+pre_rf <- predict(rf2, test)
+```
+
+Using random forest model to calculate mean squared error.
+```{r, message=FALSE, warning=FALSE}
+mse(log(test$prices), pre_rf)
+```
+
+
+## Support vector regression
+```{r, message=FALSE, warning=FALSE}
+library(e1071)
+
+svr1 <- svm(prices ~ ., data=train)
+print(svr1)
+```
+
+The target variable is skewed, thus I apply log to it.
+```{r, message=FALSE, warning=FALSE}
+svr2 <- svm(log(prices) ~ ., data=train)
+print(svr2)
+```
+
+Predict the housing prices on the testing data.
+```{r, message=FALSE, warning=FALSE}
+pre_svm <- predict(svr2, test)
+```
+
+Using model to calculate mean squared error.
+```{r, message=FALSE, warning=FALSE}
+mse(log(test$prices), pre_svm)
+```
+
+```{r, message=FALSE, warning=FALSE}
+summary(svr2)
+```
+
+```{r, message=FALSE, warning=FALSE}
+pre_svm1 <- predict(svr1, test)
+```
+
+```{r, message=FALSE, warning=FALSE}
+mse(log(test$prices), pre_svm1)
+```
